@@ -21,75 +21,75 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
  */
 
-import org.braincopy.orbit.PositionECEF;
-import org.braincopy.orbit.PositionENU;
-import org.braincopy.orbit.PositionLLH;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
- * @author 01028
+ * @author Hiroaki Tateshita
  */
 public class PositionENUTest {
 
-    public PositionENUTest() {
-    }
+	public PositionENUTest() {
+	}
 
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-    }
+	@BeforeClass
+	public static void setUpClass() throws Exception {
+	}
 
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-    }
+	@AfterClass
+	public static void tearDownClass() throws Exception {
+	}
 
-    @Before
-    public void setUp() {
-    }
+	@Before
+	public void setUp() {
+	}
 
-    @After
-    public void tearDown() {
-    }
+	@After
+	public void tearDown() {
+	}
 
-    /**
-     * Test of convertToENU method, of class PositionENU.
-     */
-    @Test
-    public void testConvertToENU() {
-        System.out.println("convertToENU");
+	/**
+	 * Test of convertToENU method, of class PositionENU.
+	 */
+	@Test
+	public void testConvertToENU() {
+		System.out.println("convertToENU");
 
-        PositionECEF position = new PositionLLH(38.14227288 / 180 * Math.PI, 140.93265738 / 180 * Math.PI, 45.664).convertToECEF();
-        PositionECEF base = new PositionLLH(38.13877338 / 180 * Math.PI, 140.89872429 / 180 * Math.PI, 44.512).convertToECEF();
-        PositionENU result = PositionENU.convertToENU(position, base);
-        System.out.println(result);
+		PositionECEF position = new PositionLLH(38.14227288 / 180 * Math.PI, 140.93265738 / 180 * Math.PI, 45.664)
+				.convertToECEF();
+		PositionECEF base = new PositionLLH(38.13877338 / 180 * Math.PI, 140.89872429 / 180 * Math.PI, 44.512)
+				.convertToECEF();
+		PositionENU result = PositionENU.convertToENU(position, base);
+		System.out.println(result);
 
-        if (Math.abs(result.east - 2974.681) > 1) {
-            fail("wrong result: east = " + result.east);
-        }
-        if (Math.abs(result.north - 388.988) > 1) {
-            fail("wrong result: north = " + result.north);
-        }
-        if (Math.abs(result.up - 0.447) > 1) {
-            fail("wrong result: north = " + result.north);
-        }
+		if (Math.abs(result.east - 2974.681) > 1) {
+			fail("wrong result: east = " + result.east);
+		}
+		if (Math.abs(result.north - 388.988) > 1) {
+			fail("wrong result: north = " + result.north);
+		}
+		if (Math.abs(result.up - 0.447) > 1) {
+			fail("wrong result: north = " + result.north);
+		}
 
-    }
+	}
 
-    @Test
-    public void testGetAzimuth() {
-        System.out.println("getAzimuth");
-        PositionENU position = new PositionENU(1, 1, 1);
-        assertEquals(Math.PI/4, position.getAzimuth(),0.001);
-        position= new PositionENU(-1, 1, 1);
-        assertEquals(3*Math.PI/4, position.getAzimuth(),0.001);
-        position= new PositionENU(1, -1, 1);
-        assertEquals(-Math.PI/4, position.getAzimuth(),0.001);
-       
-    }
+	@Test
+	public void testGetAzimuth() {
+		System.out.println("getAzimuth");
+		PositionENU position = new PositionENU(1, 1, 1);
+		assertEquals(Math.PI / 4, position.getAzimuth(), 0.001);
+		position = new PositionENU(-1, 1, 1);
+		assertEquals(3 * Math.PI / 4, position.getAzimuth(), 0.001);
+		position = new PositionENU(1, -1, 1);
+		assertEquals(-Math.PI / 4, position.getAzimuth(), 0.001);
+
+	}
 }

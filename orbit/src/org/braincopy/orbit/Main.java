@@ -22,6 +22,9 @@ THE SOFTWARE.
 
 package org.braincopy.orbit;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
@@ -48,19 +51,22 @@ public class Main {
 		double startDay, stopDay;
 
 		startYear = 2014;
-		startDay = 61.5;// March 2nd 12 am
+		startDay = 101.5;// March 2nd 12 am
 		stopYear = 2014;
-		stopDay = 62.5;
-		step = 60;// 60 [minutes] = 1 hour
+		stopDay = 111.5;
+		step = 5;// 60 [minutes] = 1 hour
 
 		/*
-		 * following two line element is retrieved from space-track.org
+		 * following two line element is retrieved from space-track.org 38337
 		 */
-		String line1 = "1 37158U 10045A   14058.66994286 -.00000212  00000-0  00000+0 0  7489";
-		String line2 = "2 37158 040.6013 176.9014 0749309 270.0563 089.2168 01.00264238 12691";
+		String line1 = "1 38337U 12025A   14101.92104084  .00000852  00000-0  19923-3 0  7438";
+		String line2 = "2 38337 098.2062 042.9966 0000801 073.7798 286.3479 14.57092085101113";
 
 		Vector<Sgp4Data> results;
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
+
 		try {
+			FileWriter writer = new FileWriter("target/output.txt");
 			results = sgp4.runSgp4(line1, line2, startYear, startDay, stopYear,
 					stopDay, step);// step's unit should be minute.
 			PositionECI posEci = null;
@@ -78,14 +84,22 @@ public class Main {
 						* ConstantNumber.RADIUS_OF_EARTH, data.getZ()
 						* ConstantNumber.RADIUS_OF_EARTH, dateAndTime);
 				posLlh = posEci.convertToECEF().convertToLLH();
-				System.out.println(posLlh.getLat() * 180 / Math.PI + "\t"
+				System.out.println(sdf.format(dateAndTime.getTime()) + "\t"
+						+ posLlh.getLat() * 180 / Math.PI + "\t"
 						+ posLlh.getLon() * 180 / Math.PI + "\t"
 						+ posLlh.getHeight());
+				writer.write(sdf.format(dateAndTime.getTime()) + "\t"
+						+ posLlh.getLat() * 180 / Math.PI + "\t"
+						+ posLlh.getLon() * 180 / Math.PI + "\t"
+						+ posLlh.getHeight() + "\n");
 			}
 		} catch (ObjectDecayed e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (SatElsetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
