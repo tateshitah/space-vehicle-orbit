@@ -71,7 +71,7 @@ public class VisibilityCalculator {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
 
 		Iterator<TLEString> ite = tleList.iterator();
-		ArrayList<Vector> resultsList = new ArrayList<Vector>(tleList.size());
+		ArrayList<Vector<Sgp4Data>> resultsList = new ArrayList<Vector<Sgp4Data>>(tleList.size());
 		while (ite.hasNext()) {
 			TLEString tle = (TLEString) ite.next();
 			results = sgp4.runSgp4(tle.getLine1(), tle.getLine2(), startYear, startDay, stopYear, stopDay, step);// step's
@@ -97,16 +97,71 @@ public class VisibilityCalculator {
 		Kml kml = new Kml();
 		KMLCreator kmlCreator = new KMLCreator(kml);
 
-		int mesh = 5;// [degree]]
-		// PositionLLH currentPosllh = null;
+		double mesh = 5.0;// [degree]]
+		PositionLLH currentPosllh = null;
+		double percentageOverCertainEl = 0;
+		for (int i = 0; i < 360 / mesh; i++) {
+			for (int j = 0; j < 180 / mesh; j++) {
+				currentPosllh = new PositionLLH((j * mesh - 90.0) / 180.0 * Math.PI, (i * mesh - 180.0) / 180 * Math.PI,
+						0.0);
+				percentageOverCertainEl = calcpercentageOverCertainEl(currentPosllh, resultsList, 15.0, startDay,
+						startYear, step);
+				System.out.println((i * mesh - 180.0) + ", " + (j * mesh - 90.0) + " :" + percentageOverCertainEl);
+			}
+		}
+	}
+
+	private double calcpercentageOverCertainEl(PositionLLH currentPosllh, ArrayList<Vector<Sgp4Data>> resultsList,
+			double elevationMask, double startDay, int startYear, int step) {
+		double result = 0.0;
+		double[] minimumElevationArray = new double[24 * 60 / step + 1];
+		for (int i = 0; i < minimumElevationArray.length; i++) {
+			minimumElevationArray[i] = 90.0;
+		}
+		Iterator<Vector<Sgp4Data>> resultIte = resultsList.iterator();
+		Sgp4Data data = null;
+		double days = 0.0;
+
+		GregorianCalendar dateAndTime = null;
+		PositionECI posEci = null;
+		while (resultIte.hasNext()) {
+			Vector<Sgp4Data> resultEachTle = resultIte.next();
+			Iterator<Sgp4Data> sgp4resultIte = resultEachTle.iterator();
+			int i = 0;
+			double currentElevation = 0;
+			while (sgp4resultIte.hasNext()) {
+				data = sgp4resultIte.next();
+				days = startDay + i * (double) step * 60 / (double) ConstantNumber.SECONDS_DAY;
+				dateAndTime = Main.getCalendarFmYearAndDays(startYear, days);
+				posEci = new PositionECI(data.getX() * ConstantNumber.RADIUS_OF_EARTH,
+						data.getY() * ConstantNumber.RADIUS_OF_EARTH, data.getZ() * ConstantNumber.RADIUS_OF_EARTH,
+						dateAndTime);
+				currentElevation = PositionENU.convertToENU(posEci.convertToECEF(), currentPosllh.convertToECEF())
+						.getElevation();
+				System.out.println("Test only: current ele=" + currentElevation);
+				if (minimumElevationArray[i] > currentElevation) {
+					minimumElevationArray[i] = currentElevation;
+				}
+				i++;
+			}
+		}
+
+		int count = 0;
+		for (int i = 0; i < minimumElevationArray.length; i++) {
+			if (minimumElevationArray[i] > elevationMask) {
+				count++;
+			}
+		}
+		result = (double) count / (double) minimumElevationArray.length * 100;
+		return result;
 	}
 
 	public static void main(String[] args) {
 		VisibilityCalculator calculator = new VisibilityCalculator();
 		ArrayList<TLEString> tleList = new ArrayList<TLEString>();
 		TLEString qzss1TLEString = new TLEString();
-		qzss1TLEString.setLine1("1 38337U 12025A   14101.92104084  .00000852  00000-0  19923-3 0  7438");
-		qzss1TLEString.setLine2("2 38337 098.2062 042.9966 0000801 073.7798 286.3479 14.57092085101113");
+		qzss1TLEString.setLine1("1 37158U 10045A   17136.38279348 -.00000101  00000-0  00000-0 0  9999");
+		qzss1TLEString.setLine2("2 37158  40.8296 159.7841 0751802 270.0854  78.4139  1.00288962 24430");
 		tleList.add(qzss1TLEString);
 
 		TLEString qzss2TLEString = new TLEString();
