@@ -23,7 +23,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package org.braincopy.orbit;
 
-import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -32,6 +33,7 @@ import java.util.Vector;
 
 import org.braincopy.kml.KMLCreator;
 
+import de.micromata.opengis.kml.v_2_2_0.Coordinate;
 //import de.micromata.opengis.kml.v_2_2_0.Coordinate;
 import de.micromata.opengis.kml.v_2_2_0.Kml;
 import sgp4v.ObjectDecayed;
@@ -52,8 +54,10 @@ public class VisibilityCalculator {
 	 * 
 	 * @throws SatElsetException
 	 * @throws ObjectDecayed
+	 * @throws FileNotFoundException
 	 */
-	public void outputCalcResult(ArrayList<TLEString> tleList) throws ObjectDecayed, SatElsetException {
+	public void outputCalcResult(ArrayList<TLEString> tleList)
+			throws ObjectDecayed, SatElsetException, FileNotFoundException {
 
 		Sgp4Unit sgp4 = new Sgp4Unit();
 		int startYear, stopYear, step;
@@ -68,7 +72,7 @@ public class VisibilityCalculator {
 		step = 60;// 60 [minutes] = 1 hour
 
 		Vector<Sgp4Data> results;
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
+		// SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
 
 		Iterator<TLEString> ite = tleList.iterator();
 		ArrayList<Vector<Sgp4Data>> resultsList = new ArrayList<Vector<Sgp4Data>>(tleList.size());
@@ -76,41 +80,57 @@ public class VisibilityCalculator {
 			TLEString tle = (TLEString) ite.next();
 			results = sgp4.runSgp4(tle.getLine1(), tle.getLine2(), startYear, startDay, stopYear, stopDay, step);// step's
 			resultsList.add(results);
-			PositionECI posEci = null;
-			PositionLLH posLlh = null;
-			GregorianCalendar dateAndTime = null;
-			double days = 0;
-			Sgp4Data data = null;
-			for (int i = 0; i < results.size(); i++) {
-				data = (Sgp4Data) results.elementAt(i);
-				days = startDay + i * (double) step * 60 / (double) ConstantNumber.SECONDS_DAY;
-				dateAndTime = Main.getCalendarFmYearAndDays(startYear, days);
-				posEci = new PositionECI(data.getX() * ConstantNumber.RADIUS_OF_EARTH,
-						data.getY() * ConstantNumber.RADIUS_OF_EARTH, data.getZ() * ConstantNumber.RADIUS_OF_EARTH,
-						dateAndTime);
-				posLlh = posEci.convertToECEF().convertToLLH();
-				System.out.println(sdf.format(dateAndTime.getTime()) + "\t" + posLlh.getLat() * 180 / Math.PI + "\t"
-						+ posLlh.getLon() * 180 / Math.PI + "\t" + posLlh.getHeight());
-			}
-
+			/*
+			 * PositionECI posEci = null; PositionLLH posLlh = null;
+			 * GregorianCalendar dateAndTime = null; double days = 0; Sgp4Data
+			 * data = null; for (int i = 0; i < results.size(); i++) { data =
+			 * (Sgp4Data) results.elementAt(i); days = startDay + i * (double)
+			 * step * 60 / (double) ConstantNumber.SECONDS_DAY; dateAndTime =
+			 * Main.getCalendarFmYearAndDays(startYear, days); // posEci = new
+			 * PositionECI(data.getX() * // ConstantNumber.RADIUS_OF_EARTH, //
+			 * data.getY() * ConstantNumber.RADIUS_OF_EARTH, data.getZ() * //
+			 * ConstantNumber.RADIUS_OF_EARTH, // dateAndTime); // posLlh =
+			 * posEci.convertToECEF().convertToLLH(); //
+			 * System.out.println(sdf.format(dateAndTime.getTime()) + "\t" + //
+			 * posLlh.getLat() * 180 / Math.PI + "\t" // + posLlh.getLon() * 180
+			 * / Math.PI + "\t" + // posLlh.getHeight()); }
+			 */
 		}
 		Kml kml = new Kml();
 		KMLCreator kmlCreator = new KMLCreator(kml);
 
-		double mesh = 5.0;// [degree]]
+		double mesh = 1.0;// [degree]]
 		PositionLLH currentPosllh = null;
 		double percentageOverCertainEl = 0;
 		for (int i = 0; i < 360 / mesh; i++) {
 			for (int j = 0; j < 180 / mesh; j++) {
-				currentPosllh = new PositionLLH((j * mesh - 90.0) / 180.0 * Math.PI, (i * mesh - 180.0) / 180 * Math.PI,
-						0.0);
+				currentPosllh = new PositionLLH((j * mesh - 90.0) / 180.0 * Math.PI,
+						(i * mesh - 180.0) / 180.0 * Math.PI, 0.0);
 				percentageOverCertainEl = calcpercentageOverCertainEl(currentPosllh, resultsList, 15.0, startDay,
 						startYear, step);
+				if (percentageOverCertainEl == 100.0) {
+					percentageOverCertainEl = 99.0;
+				}
 				System.out.println((i * mesh - 180.0) + ", " + (j * mesh - 90.0) + " :" + percentageOverCertainEl);
+				kmlCreator.createUnitPlacemark(new Coordinate(i * mesh - 180, j * mesh - 90, 30), (int) mesh,
+						"polystyle" + ((int) percentageOverCertainEl * 16 / 100));
 			}
 		}
+		String kmlFileName = "testdata/visibility.kml";
+		kml.marshal(new File(kmlFileName));
+		System.out.println("completed: " + kmlFileName);
 	}
 
+	/**
+	 * 
+	 * @param currentPosllh
+	 * @param resultsList
+	 * @param elevationMask
+	 * @param startDay
+	 * @param startYear
+	 * @param step
+	 * @return
+	 */
 	private double calcpercentageOverCertainEl(PositionLLH currentPosllh, ArrayList<Vector<Sgp4Data>> resultsList,
 			double elevationMask, double startDay, int startYear, int step) {
 		double result = 0.0;
@@ -138,7 +158,8 @@ public class VisibilityCalculator {
 						dateAndTime);
 				currentElevation = PositionENU.convertToENU(posEci.convertToECEF(), currentPosllh.convertToECEF())
 						.getElevation();
-				System.out.println("Test only: current ele=" + currentElevation);
+				// System.out.println("Test only: current ele=" +
+				// currentElevation);
 				if (minimumElevationArray[i] > currentElevation) {
 					minimumElevationArray[i] = currentElevation;
 				}
@@ -148,7 +169,7 @@ public class VisibilityCalculator {
 
 		int count = 0;
 		for (int i = 0; i < minimumElevationArray.length; i++) {
-			if (minimumElevationArray[i] > elevationMask) {
+			if (minimumElevationArray[i] > elevationMask / 180.0 * Math.PI) {
 				count++;
 			}
 		}
@@ -160,7 +181,7 @@ public class VisibilityCalculator {
 		VisibilityCalculator calculator = new VisibilityCalculator();
 		ArrayList<TLEString> tleList = new ArrayList<TLEString>();
 		TLEString qzss1TLEString = new TLEString();
-		qzss1TLEString.setLine1("1 37158U 10045A   17136.38279348 -.00000101  00000-0  00000-0 0  9999");
+		qzss1TLEString.setLine1("1 37158U 10045A   17136.38279348 -.00000102  00000-0  00000-0 0  9990");
 		qzss1TLEString.setLine2("2 37158  40.8296 159.7841 0751802 270.0854  78.4139  1.00288962 24430");
 		tleList.add(qzss1TLEString);
 
@@ -185,6 +206,9 @@ public class VisibilityCalculator {
 			System.err.println("something happens: " + e.getLocalizedMessage());
 			e.printStackTrace();
 		} catch (SatElsetException e) {
+			System.err.println("something happens: " + e.getLocalizedMessage());
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
 			System.err.println("something happens: " + e.getLocalizedMessage());
 			e.printStackTrace();
 		}
@@ -217,9 +241,4 @@ public class VisibilityCalculator {
 	 * hour } } result = (double) visibleCount / (double) calcCount*100; return
 	 * result; }
 	 */
-	private static void showUsage() {
-		System.out.println("usage: ");
-		System.out.println("#> java -cp QZ-Utils.jar VisibilityCalculator nav_file");
-
-	}
 }

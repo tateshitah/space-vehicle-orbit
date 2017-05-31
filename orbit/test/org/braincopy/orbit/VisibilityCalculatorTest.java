@@ -1,5 +1,8 @@
 package org.braincopy.orbit;
 
+import static org.junit.Assert.fail;
+
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
 import org.junit.Test;
@@ -37,9 +40,15 @@ public class VisibilityCalculatorTest {
 			calculator.outputCalcResult(tleList);
 		} catch (ObjectDecayed e) {
 			System.err.println("something happens: " + e.getLocalizedMessage());
+			fail();
 			e.printStackTrace();
 		} catch (SatElsetException e) {
 			System.err.println("something happens: " + e.getLocalizedMessage());
+			fail();
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			System.err.println("something happens: " + e.getLocalizedMessage());
+			fail();
 			e.printStackTrace();
 		}
 
