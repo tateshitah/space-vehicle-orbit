@@ -1,6 +1,6 @@
 /**
  
-Copyright (c) 2012 braincopy.org
+Copyright (c) 2012-2017 braincopy.org
 
 Permission is hereby granted, free of charge, to any person obtaining a copy 
 of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,12 @@ package org.braincopy.kml;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 
+import org.braincopy.orbit.PositionECEF;
+import org.braincopy.orbit.PositionLLH;
+
+import de.micromata.opengis.kml.v_2_2_0.AltitudeMode;
 import de.micromata.opengis.kml.v_2_2_0.Coordinate;
 import de.micromata.opengis.kml.v_2_2_0.Document;
 import de.micromata.opengis.kml.v_2_2_0.Kml;
@@ -34,25 +39,14 @@ import de.micromata.opengis.kml.v_2_2_0.Style;
 
 public class KMLCreator {
 	Document doc;
-	String transparency = "7f";//"00" means no color, "ff" means no transparency
-	String[] colorStrs = {transparency+"000099",
-			transparency+"0000ff",
-			transparency+"0011ff",
-			transparency+"0033ff",
-			transparency+"0066ff",
-			transparency+"0099ff",
-			transparency+"00bbff",
-			transparency+"00ffff",
-			transparency+"22cccc",
-			transparency+"44aaaa",
-			transparency+"668888",
-			transparency+"886666",
-			transparency+"aa4444",
-			transparency+"cc2222",
-			transparency+"ff0000",
-			transparency+"990000"};
-	//new String[16];
-
+	String transparency = "7f";// "00" means no color, "ff" means no
+								// transparency
+	String[] colorStrs = { transparency + "000099", transparency + "0000ff", transparency + "0011ff",
+			transparency + "0033ff", transparency + "0066ff", transparency + "0099ff", transparency + "00bbff",
+			transparency + "00ffff", transparency + "22cccc", transparency + "44aaaa", transparency + "668888",
+			transparency + "886666", transparency + "aa4444", transparency + "cc2222", transparency + "ff0000",
+			transparency + "990000" };
+	// new String[16];
 
 	public KMLCreator(Kml kml) {
 		this.doc = kml.createAndSetDocument().withOpen(true);
@@ -104,32 +98,36 @@ public class KMLCreator {
 		Style style16 = doc.createAndAddStyle().withId("polystyle15");
 		style16.createAndSetPolyStyle().withColor(colorStrs[15]);
 		style16.createAndSetLineStyle().withWidth(0);
+
+		Style lineStyle1 = doc.createAndAddStyle().withId("lineStyle1");
+		lineStyle1.createAndSetLineStyle().withColor("ffFF1493").withWidth(4.0);
+
 	}
 
 	/**
+	 * In this method, new Placemark will be added to KML object of Document
+	 * object which KMLCreator object has.
 	 * 
-	 * @param kml
+	 * @param center
 	 * @param mesh
-	 *            [degree]
-	 * @param colorStr
+	 * @param styleUrl
 	 * @return
 	 */
-	public Placemark createUnitPlacemark(Coordinate center, int mesh,
-			String styleUrl) {
+	public Placemark createUnitPlacemark(Coordinate center, int mesh, String styleUrl) {
 		Placemark result = null;
 		result = doc.createAndAddPlacemark().withStyleUrl(styleUrl);
-		result.createAndSetPolygon()
-				.withExtrude(true)
-				.createAndSetOuterBoundaryIs()
-				.createAndSetLinearRing()
-				.addToCoordinates(center.getLongitude() - mesh * 0.5,
-						center.getLatitude() + mesh * 0.5, center.getAltitude())
-				.addToCoordinates(center.getLongitude() + mesh * 0.5,
-						center.getLatitude() + mesh * 0.5, center.getAltitude())
-				.addToCoordinates(center.getLongitude() + mesh * 0.5,
-						center.getLatitude() - mesh * 0.5, center.getAltitude())
-				.addToCoordinates(center.getLongitude() - mesh * 0.5,
-						center.getLatitude() - mesh * 0.5, center.getAltitude());
+		result.createAndSetPolygon().withExtrude(true).createAndSetOuterBoundaryIs().createAndSetLinearRing()
+				.addToCoordinates(center.getLongitude() - mesh * 0.5, center.getLatitude() + mesh * 0.5,
+						center.getAltitude())
+				.addToCoordinates(center.getLongitude() + mesh * 0.5, center.getLatitude() + mesh * 0.5,
+						center.getAltitude())
+				.addToCoordinates(center.getLongitude() + mesh * 0.5, center.getLatitude() - mesh * 0.5,
+						center.getAltitude())
+				.addToCoordinates(center.getLongitude() - mesh * 0.5, center.getLatitude() - mesh * 0.5,
+						center.getAltitude());
+
+		// add in May 31, 2017 by Hiroaki Tateshita
+		result.setName(center.getLongitude() + ", " + center.getLatitude());
 
 		return result;
 	}
@@ -140,8 +138,8 @@ public class KMLCreator {
 		int mesh = 3;// [degree]]
 		for (int i = 0; i < 360 / mesh; i++) {
 			for (int j = 1; j < 180 / mesh; j++) {
-				creator.createUnitPlacemark(new Coordinate(i * mesh - 180, j
-						* mesh - 90, 30), mesh, "polystyle" + (i + j) % 16);
+				creator.createUnitPlacemark(new Coordinate(i * mesh - 180, j * mesh - 90, 30), mesh,
+						"polystyle" + (i + j) % 16);
 			}
 		}
 		kml.marshal();
@@ -151,5 +149,27 @@ public class KMLCreator {
 			System.err.println(e);
 			e.printStackTrace();
 		}
+	}
+
+	public void addOrbitOfASatellites(PositionECEF[][] posEcefMatrix, int[] prnList) {
+
+		Placemark[] gtLines = new Placemark[posEcefMatrix.length];
+		for (int i = 0; i < gtLines.length; i++) {
+			gtLines[i] = doc.createAndAddPlacemark().withName("QZSS").withStyleUrl("#lineStyle1");
+		}
+		ArrayList<Coordinate> coordinates = null;
+		PositionLLH tempLLH = null;
+
+		for (int j = 0; j < posEcefMatrix.length; j++) {
+			coordinates = new ArrayList<Coordinate>();
+			for (int i = 0; i < posEcefMatrix[j].length; i++) {
+				tempLLH = posEcefMatrix[j][i].convertToLLH();
+				coordinates.add(new Coordinate(tempLLH.getLon() * 180 / Math.PI, tempLLH.getLat() * 180 / Math.PI,
+						tempLLH.getHeight()));
+			}
+			gtLines[j].createAndSetLineString().withCoordinates(coordinates)
+					.withAltitudeMode(AltitudeMode.RELATIVE_TO_GROUND);
+		}
+
 	}
 }
