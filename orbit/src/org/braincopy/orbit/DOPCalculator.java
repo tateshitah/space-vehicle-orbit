@@ -46,7 +46,7 @@ import sgp4v.Sgp4Unit;
  * @author Hiroaki Tateshita
  *
  */
-public class VisibilityCalculator {
+public class DOPCalculator {
 
 	/**
 	 * 
@@ -55,9 +55,10 @@ public class VisibilityCalculator {
 	 * @throws SatElsetException
 	 * @throws ObjectDecayed
 	 * @throws FileNotFoundException
+	 * @throws CannotInverseException
 	 */
 	public void outputCalcResult(ArrayList<TLEString> tleList)
-			throws ObjectDecayed, SatElsetException, FileNotFoundException {
+			throws ObjectDecayed, SatElsetException, FileNotFoundException, CannotInverseException {
 
 		Sgp4Unit sgp4 = new Sgp4Unit();
 		int startYear, stopYear, step;
@@ -80,43 +81,29 @@ public class VisibilityCalculator {
 			TLEString tle = (TLEString) ite.next();
 			results = sgp4.runSgp4(tle.getLine1(), tle.getLine2(), startYear, startDay, stopYear, stopDay, step);// step's
 			resultsList.add(results);
-			/*
-			 * PositionECI posEci = null; PositionLLH posLlh = null;
-			 * GregorianCalendar dateAndTime = null; double days = 0; Sgp4Data
-			 * data = null; for (int i = 0; i < results.size(); i++) { data =
-			 * (Sgp4Data) results.elementAt(i); days = startDay + i * (double)
-			 * step * 60 / (double) ConstantNumber.SECONDS_DAY; dateAndTime =
-			 * Main.getCalendarFmYearAndDays(startYear, days); // posEci = new
-			 * PositionECI(data.getX() * // ConstantNumber.RADIUS_OF_EARTH, //
-			 * data.getY() * ConstantNumber.RADIUS_OF_EARTH, data.getZ() * //
-			 * ConstantNumber.RADIUS_OF_EARTH, // dateAndTime); // posLlh =
-			 * posEci.convertToECEF().convertToLLH(); //
-			 * System.out.println(sdf.format(dateAndTime.getTime()) + "\t" + //
-			 * posLlh.getLat() * 180 / Math.PI + "\t" // + posLlh.getLon() * 180
-			 * / Math.PI + "\t" + // posLlh.getHeight()); }
-			 */
 		}
 		Kml kml = new Kml();
 		KMLCreator kmlCreator = new KMLCreator(kml);
 
 		double mesh = 3.0;// [degree]]
+		double targetHDOP = 3.0;
 		PositionLLH currentPosllh = null;
-		double percentageOverCertainEl = 0;
+		double percentageUnderCertainHDOP = 0;
 		for (int i = 0; i < 180 / mesh; i++) {
 			for (int j = 0; j < 180 / mesh; j++) {
 				currentPosllh = new PositionLLH((j * mesh - 90.0) / 180.0 * Math.PI, (i * mesh) / 180.0 * Math.PI, 0.0);
-				percentageOverCertainEl = calcpercentageOverCertainEl(currentPosllh, resultsList, 15.0, startDay,
-						startYear, step);
-				if (percentageOverCertainEl == 100.0) {
-					percentageOverCertainEl = 99.0;
+				percentageUnderCertainHDOP = calcpercentageUnderCertainHDOP(currentPosllh, resultsList, targetHDOP,
+						15.0, startDay, startYear, step);
+				if (percentageUnderCertainHDOP == 100.0) {
+					percentageUnderCertainHDOP = 99.0;
 				}
-				System.out.println((i * mesh) + ", " + (j * mesh - 90.0) + " :" + percentageOverCertainEl);
+				System.out.println((i * mesh) + ", " + (j * mesh - 90.0) + " :" + percentageUnderCertainHDOP);
 				kmlCreator.createUnitPlacemark(new Coordinate(i * mesh, j * mesh - 90, 30), (int) mesh,
-						"polystyle" + ((int) percentageOverCertainEl * 16 / 100),
-						Double.toString(percentageOverCertainEl));
+						"polystyle" + ((int) percentageUnderCertainHDOP * 16 / 100),
+						Double.toString(percentageUnderCertainHDOP));
 			}
 		}
-		String kmlFileName = "testdata/visibility.kml";
+		String kmlFileName = "testdata/hdop.kml";
 		kml.marshal(new File(kmlFileName));
 		System.out.println("completed: " + kmlFileName);
 	}
@@ -130,57 +117,166 @@ public class VisibilityCalculator {
 	 * @param startYear
 	 * @param step
 	 * @return
+	 * @throws CannotInverseException
 	 */
-	private double calcpercentageOverCertainEl(PositionLLH currentPosllh, ArrayList<Vector<Sgp4Data>> resultsList,
-			double elevationMask, double startDay, int startYear, int step) {
+	private double calcpercentageUnderCertainHDOP(PositionLLH currentPosllh, ArrayList<Vector<Sgp4Data>> resultsList,
+			double targetHDOP, double elevationMask, double startDay, int startYear, int step)
+			throws CannotInverseException {
 		double result = 0.0;
-		double[] minimumElevationArray = new double[24 * 60 / step + 1];
-		for (int i = 0; i < minimumElevationArray.length; i++) {
-			minimumElevationArray[i] = 90.0;
+		double[] hdopArray = new double[24 * 60 / step + 1];
+		for (int i = 0; i < hdopArray.length; i++) {
+			hdopArray[i] = 0.0;
 		}
-		Iterator<Vector<Sgp4Data>> resultIte = resultsList.iterator();
+
+		Vector<Sgp4Data> satellitesListInTheIndex;
+
+		for (int i = 0; i < hdopArray.length; i++) {
+			satellitesListInTheIndex = getSatellitesListInTheIndex(resultsList, i);
+			hdopArray[i] = calcHDOP(currentPosllh, satellitesListInTheIndex, startDay, startYear, step, i,
+					elevationMask);
+
+		}
+
+		int count = 0;
+		for (int i = 0; i < hdopArray.length; i++) {
+			if (hdopArray[i] < targetHDOP) {
+				count++;
+			}
+		}
+		result = (double) count / (double) hdopArray.length * 100;
+		return result;
+	}
+
+	private double calcHDOP(PositionLLH currentPosllh, Vector<Sgp4Data> satellitesListInTheIndex, double startDay,
+			int startYear, int step, int index, double elevationMask) throws CannotInverseException {
+		double result = Double.MAX_VALUE;
+		Iterator<Sgp4Data> resultIte = satellitesListInTheIndex.iterator();
 		Sgp4Data data = null;
 		double days = 0.0;
 
 		GregorianCalendar dateAndTime = null;
 		PositionECI posEci = null;
-		while (resultIte.hasNext()) {
-			Vector<Sgp4Data> resultEachTle = resultIte.next();
-			Iterator<Sgp4Data> sgp4resultIte = resultEachTle.iterator();
-			int i = 0;
-			double currentElevation = 0;
-			while (sgp4resultIte.hasNext()) {
-				data = sgp4resultIte.next();
-				days = startDay + i * (double) step * 60 / (double) ConstantNumber.SECONDS_DAY;
-				dateAndTime = Main.getCalendarFmYearAndDays(startYear, days);
-				posEci = new PositionECI(data.getX() * ConstantNumber.RADIUS_OF_EARTH,
-						data.getY() * ConstantNumber.RADIUS_OF_EARTH, data.getZ() * ConstantNumber.RADIUS_OF_EARTH,
-						dateAndTime);
-				currentElevation = PositionENU.convertToENU(posEci.convertToECEF(), currentPosllh.convertToECEF())
-						.getElevation();
-				// System.out.println("Test only: current ele=" +
-				// currentElevation);
-				if (minimumElevationArray[i] > currentElevation) {
-					minimumElevationArray[i] = currentElevation;
-				}
-				i++;
-			}
-		}
+		PositionENU currentPositionENU = null;
+		double currentElevation = 0;
+		double currentAzimuth = 0;
+		double designMatrix[][] = new double[satellitesListInTheIndex.size()][4];
 
-		int count = 0;
-		for (int i = 0; i < minimumElevationArray.length; i++) {
-			if (minimumElevationArray[i] > elevationMask / 180.0 * Math.PI) {
-				count++;
+		int i = 0;
+		int availableSatNum = 0;
+		double[][] GTG = new double[4][4];
+
+		while (resultIte.hasNext()) {
+			data = resultIte.next();
+			days = startDay + index * (double) step * 60 / (double) ConstantNumber.SECONDS_DAY;
+			dateAndTime = Main.getCalendarFmYearAndDays(startYear, days);
+			posEci = new PositionECI(data.getX() * ConstantNumber.RADIUS_OF_EARTH,
+					data.getY() * ConstantNumber.RADIUS_OF_EARTH, data.getZ() * ConstantNumber.RADIUS_OF_EARTH,
+					dateAndTime);
+			currentPositionENU = PositionENU.convertToENU(posEci.convertToECEF(), currentPosllh.convertToECEF());
+			currentElevation = currentPositionENU.getElevation();
+
+			if (currentElevation < elevationMask / 180 * Math.PI) {
+				continue;
 			}
+
+			currentAzimuth = currentPositionENU.getAzimuth();
+
+			designMatrix[i][0] = -Math.cos(currentElevation) * Math.sin(currentAzimuth);
+			designMatrix[i][1] = -Math.cos(currentElevation) * Math.cos(currentAzimuth);
+			designMatrix[i][2] = -Math.sin(currentElevation);
+			designMatrix[i][3] = 1.0;
+
+			i++;
+
 		}
-		result = (double) count / (double) minimumElevationArray.length * 100;
+		availableSatNum = i;
+		// for GtG calculation
+		if (availableSatNum >= 4) {
+			for (int j = 0; j < 4; j++) {
+				for (int k = 0; k < 4; k++) {
+					for (int l = 0; l < availableSatNum; l++) {
+						GTG[j][k] += designMatrix[l][j] * designMatrix[l][k];
+					}
+				}
+			}
+
+			double[][] cov = inverse_matrix(GTG, 4);
+			result = Math.sqrt(cov[0][0] + cov[1][1]);
+		}
 		return result;
 	}
 
-	public static void main(String[] args) {
-		VisibilityCalculator calculator = new VisibilityCalculator();
-		ArrayList<TLEString> tleList = new ArrayList<TLEString>();
+	/**
+	 * 
+	 * @param resultsList
+	 * @param index
+	 * @return
+	 */
+	private Vector<Sgp4Data> getSatellitesListInTheIndex(ArrayList<Vector<Sgp4Data>> resultsList, int index) {
+		Vector<Sgp4Data> result = new Vector<Sgp4Data>();
+		Iterator<Vector<Sgp4Data>> ite = resultsList.iterator();
+		while (ite.hasNext()) {
+			result.add((Sgp4Data) ((Vector<Sgp4Data>) ite.next()).get(index));
+		}
+		return result;
+	}
 
+	/**
+	 * 
+	 * @param matrix
+	 *            input matrix
+	 * @param dim
+	 *            dimention
+	 * @throws CannotInverseException
+	 */
+	protected double[][] inverse_matrix(double[][] matrix, int dim) throws CannotInverseException {
+
+		int i, j, k;
+		double[][] b = new double[dim][2 * dim];
+
+		/**/
+		for (i = 0; i < dim; i++) {
+			for (j = 0; j < dim; j++) {
+				b[i][j] = matrix[i][j];
+				if (i == j)
+					b[i][j + dim] = 1.0;
+				else
+					b[i][j + dim] = 0.0;
+			}
+		}
+
+		/**/
+		for (i = 0; i < dim; i++) {
+			/**/
+			if (Math.abs(b[i][i]) <= 1E-16) {// fabs()
+				throw new CannotInverseException("value is " + b[i][i]);
+				// System.exit(2);
+			}
+			for (j = dim + dim - 1; j >= i; j--) {
+				b[i][j] /= b[i][i];
+			}
+
+			/**/
+			for (k = 0; k < dim; k++)
+				if (k != i) {
+					for (j = dim + dim - 1; j >= i; j--) {
+						b[k][j] -= b[k][i] * b[i][j];
+					}
+				}
+		}
+
+		/**/
+		for (i = 0; i < dim; i++) {
+			for (j = 0; j < dim; j++) {
+				matrix[i][j] = b[i][j + dim];
+			}
+		}
+		return matrix;
+	}
+
+	public static void main(String[] args) {
+		DOPCalculator calculator = new DOPCalculator();
+		ArrayList<TLEString> tleList = new ArrayList<TLEString>();
 		TLEString qzss1TLEString = new TLEString();
 		qzss1TLEString.setLine1("1 37158U 10045A   17136.38279348 -.00000102  00000-0  00000-0 0  9990");
 		qzss1TLEString.setLine2("2 37158  40.8296 159.7841 0751802 270.0854  78.4139  1.00288962 24430");
@@ -220,6 +316,9 @@ public class VisibilityCalculator {
 			System.err.println("something happens: " + e.getLocalizedMessage());
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
+			System.err.println("something happens: " + e.getLocalizedMessage());
+			e.printStackTrace();
+		} catch (CannotInverseException e) {
 			System.err.println("something happens: " + e.getLocalizedMessage());
 			e.printStackTrace();
 		}

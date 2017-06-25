@@ -114,19 +114,29 @@ public class OrbitCalculator {
 		tleList.add(qzss1TLEString);
 
 		TLEString qzss2TLEString = new TLEString();
-		qzss2TLEString.setLine1("1 37158U 10045A   17136.38279348 -.00000102  00000-0  00000-0 0  9990");
-		qzss2TLEString.setLine2("2 37158  40.8296 159.7841 0751802 270.0854 198.4139  1.00288962 24433");
+		qzss2TLEString.setLine1("1 42738U 17028A   17175.62920076 -.00000254 +00000-0 +00000-0 0  9997");
+		qzss2TLEString.setLine2("2 42738 044.7389 289.4881 0753048 269.8262 076.5640 01.00256368000260");
 		tleList.add(qzss2TLEString);
 
 		TLEString qzss3TLEString = new TLEString();
 		qzss3TLEString.setLine1("1 28937U 06004A   17150.86877781 -.00000262  00000-0  00000-0 0  9996");
-		qzss3TLEString.setLine2("2 28937   0.0213 106.6063 0003697 329.9697 269.7870  1.00271007 41348");
+		qzss3TLEString.setLine2("2 28937   0.0213  88.6063 0003697 329.9697 269.7870  1.00271007 41347");
 		tleList.add(qzss3TLEString);
 
 		TLEString qzss4TLEString = new TLEString();
 		qzss4TLEString.setLine1("1 37158U 10045A   17136.38279348 -.00000102  00000-0  00000-0 0  9990");
-		qzss4TLEString.setLine2("2 37158  40.8296 159.7841 0751802 270.0854 318.4139  1.00288962 24437");
+		qzss4TLEString.setLine2("2 37158  40.8296  29.7841 0751802 270.0854 208.4139  1.00288962 24431");
 		tleList.add(qzss4TLEString);
+
+		TLEString qzss5TLEString = new TLEString();
+		qzss5TLEString.setLine1("1 28937U 06004A   17150.86877781 -.00000262  00000-0  00000-0 0  9996");
+		qzss5TLEString.setLine2("2 28937   0.0213  58.6063 0003697 329.9697 269.7870  1.00271007 41344");
+		tleList.add(qzss5TLEString);
+
+		TLEString qzss6TLEString = new TLEString();
+		qzss6TLEString.setLine1("1 28937U 06004A   17150.86877781 -.00000262  00000-0  00000-0 0  9996");
+		qzss6TLEString.setLine2("2 28937   0.0213 118.6063 0003697 329.9697 269.7870  1.00271007 41341");
+		tleList.add(qzss6TLEString);
 
 		try {
 			calculator.outputCalcResult(tleList);
@@ -143,30 +153,4 @@ public class OrbitCalculator {
 
 	}
 
-	/**
-	 * return time percentage of visible input satellite (supposed one
-	 * satellite) for 24 hours from the current position.
-	 * 
-	 * @param currentPosllh
-	 * @param rinexNav
-	 * @return 0-100 [%]
-	 */
-	/*
-	 * public double calcTimePercentageOfVisibleOver30deg( PositionLLH
-	 * currentPosllh, RINEXNavigationFileReader rinexNav) { double result = 0.0;
-	 * int[] prnList = rinexNav.getPrn_list(); Wtime cursorTime = null;
-	 * Ephemeris ephemeris = null; int visibleCount = 0; int calcCount = 0;
-	 * OrbitCalculator orbitCalculator = new OrbitCalculator(); PositionECEF
-	 * satellitePosition = null; for (int i = 0; i < prnList.length; i++) { //
-	 * use just first ephemeris ephemeris =
-	 * rinexNav.getEphemerisArray(prnList[i])[0]; // get date and time from nav
-	 * file cursorTime = new Wtime(ephemeris.getWeek(),
-	 * ephemeris.getData(Ephemeris.FEILD_EPHM_TOC)); for (int j = 0; j < 24;
-	 * j++) { satellitePosition = orbitCalculator.calcSatPosition( ephemeris,
-	 * cursorTime, 0); if (PositionENU.convertToENU(satellitePosition,
-	 * currentPosllh.convertToECEF()).getElevation() > 30/180*Math.PI) {
-	 * visibleCount++; } calcCount++; cursorTime.goForward(3600);// go forward 1
-	 * hour } } result = (double) visibleCount / (double) calcCount*100; return
-	 * result; }
-	 */
 }

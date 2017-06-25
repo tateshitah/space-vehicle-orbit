@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import org.braincopy.orbit.PositionECEF;
 import org.braincopy.orbit.PositionLLH;
 
-import de.micromata.opengis.kml.v_2_2_0.AltitudeMode;
 import de.micromata.opengis.kml.v_2_2_0.Coordinate;
 import de.micromata.opengis.kml.v_2_2_0.Document;
 import de.micromata.opengis.kml.v_2_2_0.Kml;
@@ -113,7 +112,7 @@ public class KMLCreator {
 	 * @param styleUrl
 	 * @return
 	 */
-	public Placemark createUnitPlacemark(Coordinate center, int mesh, String styleUrl) {
+	public Placemark createUnitPlacemark(Coordinate center, int mesh, String styleUrl, String description) {
 		Placemark result = null;
 		result = doc.createAndAddPlacemark().withStyleUrl(styleUrl);
 		result.createAndSetPolygon().withExtrude(true).createAndSetOuterBoundaryIs().createAndSetLinearRing()
@@ -128,6 +127,7 @@ public class KMLCreator {
 
 		// add in May 31, 2017 by Hiroaki Tateshita
 		result.setName(center.getLongitude() + ", " + center.getLatitude());
+		result.setDescription(description);
 
 		return result;
 	}
@@ -139,7 +139,7 @@ public class KMLCreator {
 		for (int i = 0; i < 360 / mesh; i++) {
 			for (int j = 1; j < 180 / mesh; j++) {
 				creator.createUnitPlacemark(new Coordinate(i * mesh - 180, j * mesh - 90, 30), mesh,
-						"polystyle" + (i + j) % 16);
+						"polystyle" + (i + j) % 16, "test" + i + j);
 			}
 		}
 		kml.marshal();
@@ -167,8 +167,8 @@ public class KMLCreator {
 				coordinates.add(new Coordinate(tempLLH.getLon() * 180 / Math.PI, tempLLH.getLat() * 180 / Math.PI,
 						tempLLH.getHeight()));
 			}
-			gtLines[j].createAndSetLineString().withCoordinates(coordinates)
-					.withAltitudeMode(AltitudeMode.RELATIVE_TO_GROUND);
+			gtLines[j].createAndSetLineString().withCoordinates(coordinates);
+			// .withAltitudeMode(AltitudeMode.RELATIVE_TO_GROUND);
 		}
 
 	}
