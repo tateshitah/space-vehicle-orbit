@@ -129,11 +129,13 @@ public class DOPCalculator {
 		}
 
 		Vector<Sgp4Data> satellitesListInTheIndex;
+		Vector<PositionECEF> satellitesPosListInTheIndex;
 
 		for (int i = 0; i < hdopArray.length; i++) {
 			satellitesListInTheIndex = getSatellitesListInTheIndex(resultsList, i);
-			hdopArray[i] = calcHDOP(currentPosllh, satellitesListInTheIndex, startDay, startYear, step, i,
-					elevationMask);
+			satellitesPosListInTheIndex = getSatPosListFmSgp4Data(satellitesListInTheIndex, startDay, startYear, step,
+					i);
+			hdopArray[i] = calcHDOP(currentPosllh, satellitesPosListInTheIndex, elevationMask);
 
 		}
 
@@ -147,23 +149,14 @@ public class DOPCalculator {
 		return result;
 	}
 
-	private double calcHDOP(PositionLLH currentPosllh, Vector<Sgp4Data> satellitesListInTheIndex, double startDay,
-			int startYear, int step, int index, double elevationMask) throws CannotInverseException {
-		double result = Double.MAX_VALUE;
+	private Vector<PositionECEF> getSatPosListFmSgp4Data(Vector<Sgp4Data> satellitesListInTheIndex, double startDay,
+			int startYear, int step, int index) {
+		Vector<PositionECEF> result = new Vector<PositionECEF>();
 		Iterator<Sgp4Data> resultIte = satellitesListInTheIndex.iterator();
 		Sgp4Data data = null;
 		double days = 0.0;
-
 		GregorianCalendar dateAndTime = null;
 		PositionECI posEci = null;
-		PositionENU currentPositionENU = null;
-		double currentElevation = 0;
-		double currentAzimuth = 0;
-		double designMatrix[][] = new double[satellitesListInTheIndex.size()][4];
-
-		int i = 0;
-		int availableSatNum = 0;
-		double[][] GTG = new double[4][4];
 
 		while (resultIte.hasNext()) {
 			data = resultIte.next();
@@ -172,7 +165,36 @@ public class DOPCalculator {
 			posEci = new PositionECI(data.getX() * ConstantNumber.RADIUS_OF_EARTH,
 					data.getY() * ConstantNumber.RADIUS_OF_EARTH, data.getZ() * ConstantNumber.RADIUS_OF_EARTH,
 					dateAndTime);
-			currentPositionENU = PositionENU.convertToENU(posEci.convertToECEF(), currentPosllh.convertToECEF());
+			result.add(posEci.convertToECEF());
+		}
+		return result;
+	}
+
+	/**
+	 * 
+	 * @param currentPosllh
+	 * @param satellitesPosListInTheIndex
+	 * @param elevationMask
+	 * @return
+	 * @throws CannotInverseException
+	 */
+	protected double calcHDOP(PositionLLH currentPosllh, Vector<PositionECEF> satellitesPosListInTheIndex,
+			double elevationMask) throws CannotInverseException {
+		double result = Double.MAX_VALUE;
+		Iterator<PositionECEF> resultIte = satellitesPosListInTheIndex.iterator();
+		PositionECEF data = null;
+		PositionENU currentPositionENU = null;
+		double currentElevation = 0;
+		double currentAzimuth = 0;
+		double designMatrix[][] = new double[satellitesPosListInTheIndex.size()][4];
+
+		int i = 0;
+		int availableSatNum = 0;
+		double[][] GTG = new double[4][4];
+
+		while (resultIte.hasNext()) {
+			data = resultIte.next();
+			currentPositionENU = PositionENU.convertToENU(data, currentPosllh.convertToECEF());
 			currentElevation = currentPositionENU.getElevation();
 
 			if (currentElevation < elevationMask / 180 * Math.PI) {

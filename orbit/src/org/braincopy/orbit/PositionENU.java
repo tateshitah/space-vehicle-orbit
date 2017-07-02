@@ -1,6 +1,6 @@
 /**
  
-Copyright (c) 2014 Hiroaki Tateshita
+Copyright (c) 2014-2017 Hiroaki Tateshita
 
 Permission is hereby granted, free of charge, to any person obtaining a copy 
 of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,15 @@ public class PositionENU {
 	public double north;// [m]
 	public double up;// [m]
 
+	/**
+	 * 
+	 * @param east
+	 *            [m]
+	 * @param north
+	 *            [m]
+	 * @param up
+	 *            [m]
+	 */
 	public PositionENU(double east, double north, double up) {
 		this.east = east;
 		this.north = north;
@@ -48,23 +57,19 @@ public class PositionENU {
 	 * @param base
 	 * @return
 	 */
-	public static PositionENU convertToENU(PositionECEF position,
-			PositionECEF base) {
+	public static PositionENU convertToENU(PositionECEF position, PositionECEF base) {
 		PositionENU result = null;
-		PositionECEF relativePosition = new PositionECEF(position.x - base.x,
-				position.y - base.y, position.z - base.z);
+		PositionECEF relativePosition = new PositionECEF(position.x - base.x, position.y - base.y, position.z - base.z);
 		PositionLLH baseLLH = base.convertToLLH();
 		double east = -relativePosition.x * Math.sin(baseLLH.longitude)
 				+ relativePosition.y * Math.cos(baseLLH.longitude);
 
-		double north = -relativePosition.x * Math.cos(baseLLH.longitude)
-				* Math.sin(baseLLH.latitude) - relativePosition.y
-				* Math.sin(baseLLH.longitude) * Math.sin(baseLLH.latitude)
+		double north = -relativePosition.x * Math.cos(baseLLH.longitude) * Math.sin(baseLLH.latitude)
+				- relativePosition.y * Math.sin(baseLLH.longitude) * Math.sin(baseLLH.latitude)
 				+ relativePosition.z * Math.cos(baseLLH.latitude);
 
-		double up = relativePosition.x * Math.cos(baseLLH.longitude)
-				* Math.cos(baseLLH.latitude) + relativePosition.y
-				* Math.sin(baseLLH.longitude) * Math.cos(baseLLH.latitude)
+		double up = relativePosition.x * Math.cos(baseLLH.longitude) * Math.cos(baseLLH.latitude)
+				+ relativePosition.y * Math.sin(baseLLH.longitude) * Math.cos(baseLLH.latitude)
 				+ relativePosition.z * Math.sin(baseLLH.latitude);
 		result = new PositionENU(east, north, up);
 		return result;
@@ -89,8 +94,7 @@ public class PositionENU {
 	@Override
 	public String toString() {
 		String result = null;
-		result = "(east[m], north[m], up[m]) = (" + this.east + ", "
-				+ this.north + ", " + this.up + ")";
+		result = "(east[m], north[m], up[m]) = (" + this.east + ", " + this.north + ", " + this.up + ")";
 		return result;
 	}
 

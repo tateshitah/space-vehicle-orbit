@@ -1,9 +1,11 @@
 package org.braincopy.orbit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Vector;
 
 import org.junit.Test;
 
@@ -11,6 +13,41 @@ import sgp4v.ObjectDecayed;
 import sgp4v.SatElsetException;
 
 public class DOPCalculatorTest {
+
+	@Test
+	public void testCalcHDOP() {
+		DOPCalculator calc = new DOPCalculator();
+
+		PositionLLH currentPosllh = new PositionLLH(0, 0, 0);
+
+		Vector<PositionECEF> satellitesPosList = new Vector<PositionECEF>();
+
+		PositionENU posENU_Zenith = new PositionENU(0, 0, 35000000);
+		PositionECEF posECEF_Zenith = posENU_Zenith.convertToECEF(currentPosllh.convertToECEF());
+		satellitesPosList.add(posECEF_Zenith);
+
+		PositionENU posENU_North = new PositionENU(0, 35000000 * Math.cos(60.0 * Math.PI / 180.0),
+				35000000 * Math.sin(60.0 * Math.PI / 180.0));
+		PositionECEF posECEF_North = posENU_North.convertToECEF(currentPosllh.convertToECEF());
+		satellitesPosList.add(posECEF_North);
+
+		PositionENU posENU_East = new PositionENU(35000000 * Math.cos(60.0 * Math.PI / 180.0), 0,
+				35000000 * Math.sin(60.0 * Math.PI / 180.0));
+		PositionECEF posECEF_East = posENU_East.convertToECEF(currentPosllh.convertToECEF());
+		satellitesPosList.add(posECEF_East);
+
+		PositionENU posENU_West = new PositionENU(-35000000 * Math.cos(60.0 * Math.PI / 180.0), 0,
+				35000000 * Math.sin(60.0 * Math.PI / 180.0));
+		PositionECEF posECEF_West = posENU_West.convertToECEF(currentPosllh.convertToECEF());
+		satellitesPosList.add(posECEF_West);
+
+		try {
+			calc.calcHDOP(currentPosllh, satellitesPosList, 15.0);
+		} catch (CannotInverseException e) {
+			fail("something happens. " + e.getLocalizedMessage());
+			e.printStackTrace();
+		}
+	}
 
 	@Test
 	public void testOutputCalcResult() {

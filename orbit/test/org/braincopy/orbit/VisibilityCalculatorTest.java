@@ -22,8 +22,8 @@ public class VisibilityCalculatorTest {
 		tleList.add(qzss1TLEString);
 
 		TLEString qzss2TLEString = new TLEString();
-		qzss2TLEString.setLine1("1 98337U 12025A   14101.92104084  .00000852  00000-0  19923-3 0  7438");
-		qzss2TLEString.setLine2("2 98337 098.2062 042.9966 0000801 073.7798 286.3479 14.57092085101113");
+		qzss2TLEString.setLine1("1 98337U 12025A   14101.92104084  .00000852  00000-0  19923-3 0  7434");
+		qzss2TLEString.setLine2("2 98337 098.2062 042.9966 0000801 073.7798 286.3479 14.57092085101119");
 		tleList.add(qzss2TLEString);
 
 		TLEString qzss3TLEString = new TLEString();
@@ -32,8 +32,8 @@ public class VisibilityCalculatorTest {
 		tleList.add(qzss3TLEString);
 
 		TLEString qzss4TLEString = new TLEString();
-		qzss4TLEString.setLine1("1 98337U 12025A   14101.92104084  .00000852  00000-0  19923-3 0  7438");
-		qzss4TLEString.setLine2("2 98337 098.2062 042.9966 0000801 073.7798 286.3479 14.57092085101113");
+		qzss4TLEString.setLine1("1 98337U 12025A   14101.92104084  .00000852  00000-0  19923-3 0  7434");
+		qzss4TLEString.setLine2("2 98337 098.2062 042.9966 0000801 073.7798 286.3479 14.57092085101119");
 		tleList.add(qzss4TLEString);
 
 		try {
