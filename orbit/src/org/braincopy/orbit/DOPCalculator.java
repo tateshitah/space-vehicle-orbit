@@ -56,9 +56,10 @@ public class DOPCalculator {
 	 * @throws ObjectDecayed
 	 * @throws FileNotFoundException
 	 * @throws CannotInverseException
+	 * @throws CannotCalculateException
 	 */
-	public void outputCalcResult(ArrayList<TLEString> tleList)
-			throws ObjectDecayed, SatElsetException, FileNotFoundException, CannotInverseException {
+	public void outputCalcResult(ArrayList<TLEString> tleList) throws ObjectDecayed, SatElsetException,
+			FileNotFoundException, CannotInverseException, CannotCalculateException {
 
 		Sgp4Unit sgp4 = new Sgp4Unit();
 		int startYear, stopYear, step;
@@ -118,10 +119,11 @@ public class DOPCalculator {
 	 * @param step
 	 * @return
 	 * @throws CannotInverseException
+	 * @throws CannotCalculateException
 	 */
 	private double calcpercentageUnderCertainHDOP(PositionLLH currentPosllh, ArrayList<Vector<Sgp4Data>> resultsList,
 			double targetHDOP, double elevationMask, double startDay, int startYear, int step)
-			throws CannotInverseException {
+			throws CannotInverseException, CannotCalculateException {
 		double result = 0.0;
 		double[] hdopArray = new double[24 * 60 / step + 1];
 		for (int i = 0; i < hdopArray.length; i++) {
@@ -177,53 +179,60 @@ public class DOPCalculator {
 	 * @param elevationMask
 	 * @return
 	 * @throws CannotInverseException
+	 * @throws CannotCalculateException
 	 */
 	protected double calcHDOP(PositionLLH currentPosllh, Vector<PositionECEF> satellitesPosListInTheIndex,
-			double elevationMask) throws CannotInverseException {
+			double elevationMask) throws CannotInverseException, CannotCalculateException {
+
 		double result = Double.MAX_VALUE;
-		Iterator<PositionECEF> resultIte = satellitesPosListInTheIndex.iterator();
-		PositionECEF data = null;
-		PositionENU currentPositionENU = null;
-		double currentElevation = 0;
-		double currentAzimuth = 0;
-		double designMatrix[][] = new double[satellitesPosListInTheIndex.size()][4];
+		if (satellitesPosListInTheIndex.size() < 4) {
+			throw new CannotCalculateException(satellitesPosListInTheIndex.size());
+		} else {
 
-		int i = 0;
-		int availableSatNum = 0;
-		double[][] GTG = new double[4][4];
+			Iterator<PositionECEF> resultIte = satellitesPosListInTheIndex.iterator();
+			PositionECEF data = null;
+			PositionENU currentPositionENU = null;
+			double currentElevation = 0;
+			double currentAzimuth = 0;
+			double designMatrix[][] = new double[satellitesPosListInTheIndex.size()][4];
 
-		while (resultIte.hasNext()) {
-			data = resultIte.next();
-			currentPositionENU = PositionENU.convertToENU(data, currentPosllh.convertToECEF());
-			currentElevation = currentPositionENU.getElevation();
+			int i = 0;
+			int availableSatNum = 0;
+			double[][] GTG = new double[4][4];
 
-			if (currentElevation < elevationMask / 180 * Math.PI) {
-				continue;
+			while (resultIte.hasNext()) {
+				data = resultIte.next();
+				currentPositionENU = PositionENU.convertToENU(data, currentPosllh.convertToECEF());
+				currentElevation = currentPositionENU.getElevation();
+
+				if (currentElevation < elevationMask / 180 * Math.PI) {
+					continue;
+				}
+
+				currentAzimuth = currentPositionENU.getAzimuth();
+
+				designMatrix[i][0] = -Math.cos(currentElevation) * Math.sin(currentAzimuth);
+				designMatrix[i][1] = -Math.cos(currentElevation) * Math.cos(currentAzimuth);
+				designMatrix[i][2] = -Math.sin(currentElevation);
+				designMatrix[i][3] = 1.0;
+
+				i++;
+
 			}
-
-			currentAzimuth = currentPositionENU.getAzimuth();
-
-			designMatrix[i][0] = -Math.cos(currentElevation) * Math.sin(currentAzimuth);
-			designMatrix[i][1] = -Math.cos(currentElevation) * Math.cos(currentAzimuth);
-			designMatrix[i][2] = -Math.sin(currentElevation);
-			designMatrix[i][3] = 1.0;
-
-			i++;
-
-		}
-		availableSatNum = i;
-		// for GtG calculation
-		if (availableSatNum >= 4) {
-			for (int j = 0; j < 4; j++) {
-				for (int k = 0; k < 4; k++) {
-					for (int l = 0; l < availableSatNum; l++) {
-						GTG[j][k] += designMatrix[l][j] * designMatrix[l][k];
+			availableSatNum = i;
+			// for GtG calculation
+			if (availableSatNum >= 4) {
+				for (int j = 0; j < 4; j++) {
+					for (int k = 0; k < 4; k++) {
+						for (int l = 0; l < availableSatNum; l++) {
+							GTG[j][k] += designMatrix[l][j] * designMatrix[l][k];
+						}
 					}
 				}
-			}
 
-			double[][] cov = inverse_matrix(GTG, 4);
-			result = Math.sqrt(cov[0][0] + cov[1][1]);
+				double[][] cov = inverse_matrix(GTG, 4);
+				result = Math.sqrt(cov[0][0] + cov[1][1]);
+			}
 		}
 		return result;
 	}
@@ -341,6 +350,9 @@ public class DOPCalculator {
 			System.err.println("something happens: " + e.getLocalizedMessage());
 			e.printStackTrace();
 		} catch (CannotInverseException e) {
+			System.err.println("something happens: " + e.getLocalizedMessage());
+			e.printStackTrace();
+		} catch (CannotCalculateException e) {
 			System.err.println("something happens: " + e.getLocalizedMessage());
 			e.printStackTrace();
 		}

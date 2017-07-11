@@ -26,24 +26,82 @@ public class DOPCalculatorTest {
 		PositionECEF posECEF_Zenith = posENU_Zenith.convertToECEF(currentPosllh.convertToECEF());
 		satellitesPosList.add(posECEF_Zenith);
 
-		PositionENU posENU_North = new PositionENU(0, 35000000 * Math.cos(60.0 * Math.PI / 180.0),
-				35000000 * Math.sin(60.0 * Math.PI / 180.0));
+		PositionENU posENU_North = new PositionENU(0, 35000000 * Math.cos(30.0 * Math.PI / 180.0),
+				35000000 * Math.sin(30.0 * Math.PI / 180.0));
 		PositionECEF posECEF_North = posENU_North.convertToECEF(currentPosllh.convertToECEF());
 		satellitesPosList.add(posECEF_North);
 
-		PositionENU posENU_East = new PositionENU(35000000 * Math.cos(60.0 * Math.PI / 180.0), 0,
-				35000000 * Math.sin(60.0 * Math.PI / 180.0));
+		PositionENU posENU_East = new PositionENU(35000000 * Math.cos(30.0 * Math.PI / 180.0), 0,
+				35000000 * Math.sin(30.0 * Math.PI / 180.0));
 		PositionECEF posECEF_East = posENU_East.convertToECEF(currentPosllh.convertToECEF());
 		satellitesPosList.add(posECEF_East);
 
-		PositionENU posENU_West = new PositionENU(-35000000 * Math.cos(60.0 * Math.PI / 180.0), 0,
-				35000000 * Math.sin(60.0 * Math.PI / 180.0));
+		PositionENU posENU_West = new PositionENU(-35000000 * Math.cos(30.0 * Math.PI / 180.0), 0,
+				35000000 * Math.sin(30.0 * Math.PI / 180.0));
 		PositionECEF posECEF_West = posENU_West.convertToECEF(currentPosllh.convertToECEF());
 		satellitesPosList.add(posECEF_West);
 
 		try {
+			double hdop = calc.calcHDOP(currentPosllh, satellitesPosList, 15.0);
+			System.out.println("hdop = " + hdop);
+			assertEquals(1.6329, hdop, 0.1);
+		} catch (CannotInverseException e) {
+			fail("something happens. " + e.getLocalizedMessage());
+			e.printStackTrace();
+		} catch (CannotCalculateException e) {
+			fail("something happens. " + e.getLocalizedMessage());
+			e.printStackTrace();
+		}
+
+		satellitesPosList.clear();
+		currentPosllh = new PositionLLH(35.683333 / 180 * Math.PI, 139.683333 / 180 * Math.PI, 5.0);// Tokyo
+
+		double azimuth1 = 110.0 / 180.0 * Math.PI;// [rad]
+		double elevation1 = 85.0 / 180.0 * Math.PI;// [rad]
+		PositionENU posENU1 = new PositionENU(35000000 * Math.cos(azimuth1) * Math.cos(elevation1),
+				35000000 * Math.sin(azimuth1) * Math.cos(elevation1), 35000000 * Math.sin(elevation1));
+		PositionECEF posECEF1 = posENU1.convertToECEF(currentPosllh.convertToECEF());
+		satellitesPosList.add(posECEF1);
+
+		double azimuth2 = 255.0 / 180.0 * Math.PI;// [rad]
+		double elevation2 = 25.0 / 180.0 * Math.PI;// [rad]
+		PositionENU posENU2 = new PositionENU(35000000 * Math.cos(azimuth2) * Math.cos(elevation2),
+				35000000 * Math.sin(azimuth2) * Math.cos(elevation2), 35000000 * Math.sin(elevation2));
+		PositionECEF posECEF2 = posENU2.convertToECEF(currentPosllh.convertToECEF());
+		satellitesPosList.add(posECEF2);
+
+		double azimuth3 = 285.0 / 180.0 * Math.PI;// [rad]
+		double elevation3 = 40.0 / 180.0 * Math.PI;// [rad]
+		PositionENU posENU3 = new PositionENU(35000000 * Math.cos(azimuth3) * Math.cos(elevation3),
+				35000000 * Math.sin(azimuth3) * Math.cos(elevation3), 35000000 * Math.sin(elevation3));
+		PositionECEF posECEF3 = posENU3.convertToECEF(currentPosllh.convertToECEF());
+		satellitesPosList.add(posECEF3);
+
+		double azimuth4 = 250.0 / 180.0 * Math.PI;// [rad]
+		double elevation4 = 45.0 / 180.0 * Math.PI;// [rad]
+		PositionENU posENU4 = new PositionENU(35000000 * Math.cos(azimuth4) * Math.cos(elevation4),
+				35000000 * Math.sin(azimuth4) * Math.cos(elevation4), 35000000 * Math.sin(elevation4));
+		PositionECEF posECEF4 = posENU4.convertToECEF(currentPosllh.convertToECEF());
+
+		try {
 			calc.calcHDOP(currentPosllh, satellitesPosList, 15.0);
 		} catch (CannotInverseException e) {
+			fail("something happens. " + e.getLocalizedMessage());
+			e.printStackTrace();
+		} catch (CannotCalculateException e) {
+			System.out.println("CannotCalculateException detected normally. " + e.getMessage());
+		}
+
+		satellitesPosList.add(posECEF4);
+
+		try {
+			double hdop = calc.calcHDOP(currentPosllh, satellitesPosList, 15.0);
+			System.out.println("hdop = " + hdop);
+			assertEquals(5.4686, hdop, 0.1);
+		} catch (CannotInverseException e) {
+			fail("something happens. " + e.getLocalizedMessage());
+			e.printStackTrace();
+		} catch (CannotCalculateException e) {
 			fail("something happens. " + e.getLocalizedMessage());
 			e.printStackTrace();
 		}
@@ -71,6 +129,8 @@ public class DOPCalculatorTest {
 		} catch (CannotInverseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (CannotCalculateException e) {
+			System.out.println("normally detected: " + e.getMessage());
 		}
 	}
 
