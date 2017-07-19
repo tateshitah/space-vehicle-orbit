@@ -109,6 +109,19 @@ public class DOPCalculator {
 		System.out.println("completed: " + kmlFileName);
 	}
 
+	private double calcHDOPatOneMoment(PositionLLH currentPosllh, ArrayList<Vector<Sgp4Data>> resultsList,
+			double elevationMask, double startDay, int startYear)
+			throws CannotInverseException, CannotCalculateException {
+		double result = Double.MIN_VALUE;
+		Vector<Sgp4Data> satellitesListInTheIndex;
+		Vector<PositionECEF> satellitesPosListInTheIndex;
+		satellitesListInTheIndex = getSatellitesListInTheIndex(resultsList, 0);
+		satellitesPosListInTheIndex = getSatPosListFmSgp4Data(satellitesListInTheIndex, startDay, startYear, 0, 0);
+		result = calcHDOP(currentPosllh, satellitesPosListInTheIndex, elevationMask);
+
+		return result;
+	}
+
 	/**
 	 * 
 	 * @param currentPosllh
@@ -151,6 +164,15 @@ public class DOPCalculator {
 		return result;
 	}
 
+	/**
+	 * 
+	 * @param satellitesListInTheIndex
+	 * @param startDay
+	 * @param startYear
+	 * @param step
+	 * @param index
+	 * @return
+	 */
 	private Vector<PositionECEF> getSatPosListFmSgp4Data(Vector<Sgp4Data> satellitesListInTheIndex, double startDay,
 			int startYear, int step, int index) {
 		Vector<PositionECEF> result = new Vector<PositionECEF>();
@@ -305,6 +327,64 @@ public class DOPCalculator {
 		return matrix;
 	}
 
+	/**
+	 * 
+	 * output is KML file
+	 * 
+	 * @throws SatElsetException
+	 * @throws ObjectDecayed
+	 * @throws FileNotFoundException
+	 * @throws CannotInverseException
+	 * @throws CannotCalculateException
+	 */
+	public void outputCalcResult2(ArrayList<TLEString> tleList) throws ObjectDecayed, SatElsetException,
+			FileNotFoundException, CannotInverseException, CannotCalculateException {
+
+		Sgp4Unit sgp4 = new Sgp4Unit();
+		int startYear, stopYear, step;
+		double startDay, stopDay;
+
+		Calendar startDate = new GregorianCalendar(2017, 5 - 1, 15, 9, 0, 0);
+		startYear = startDate.get(Calendar.YEAR);
+		startDay = startDate.get(GregorianCalendar.DAY_OF_YEAR);
+		Calendar stopDate = new GregorianCalendar(2017, 5 - 1, 16, 9, 0, 0);
+		stopYear = stopDate.get(Calendar.YEAR);
+		stopDay = stopDate.get(GregorianCalendar.DAY_OF_YEAR);
+		step = 60;// 60 [minutes] = 1 hour
+
+		Vector<Sgp4Data> results;
+		// SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
+
+		Iterator<TLEString> ite = tleList.iterator();
+		ArrayList<Vector<Sgp4Data>> resultsList = new ArrayList<Vector<Sgp4Data>>(tleList.size());
+		while (ite.hasNext()) {
+			TLEString tle = (TLEString) ite.next();
+			results = sgp4.runSgp4(tle.getLine1(), tle.getLine2(), startYear, startDay, stopYear, stopDay, step);// step's
+			resultsList.add(results);
+		}
+		Kml kml = new Kml();
+		KMLCreator kmlCreator = new KMLCreator(kml);
+
+		double mesh = 1.0;// [degree]]
+		PositionLLH currentPosllh = null;
+		double hdop_atOneMoment = Double.MIN_VALUE;
+		for (int i = 0; i < 360 / mesh; i++) {
+			for (int j = 0; j < 180 / mesh; j++) {
+				currentPosllh = new PositionLLH((j * mesh - 90.0) / 180.0 * Math.PI, (i * mesh) / 180.0 * Math.PI, 0.0);
+				hdop_atOneMoment = calcHDOPatOneMoment(currentPosllh, resultsList, 15.0, startDay, startYear);
+				if (hdop_atOneMoment > 16.0) {
+					hdop_atOneMoment = 16.0;
+				}
+				System.out.println((i * mesh) + ", " + (j * mesh - 90.0) + " :" + hdop_atOneMoment);
+				kmlCreator.createUnitPlacemark(new Coordinate(i * mesh, j * mesh - 90, 30), (int) mesh,
+						"polystyle" + ((int) (16.0 - hdop_atOneMoment)), Double.toString(hdop_atOneMoment));
+			}
+		}
+		String kmlFileName = "testdata/hdop2.kml";
+		kml.marshal(new File(kmlFileName));
+		System.out.println("completed: " + kmlFileName);
+	}
+
 	public static void main(String[] args) {
 		DOPCalculator calculator = new DOPCalculator();
 		ArrayList<TLEString> tleList = new ArrayList<TLEString>();
@@ -329,8 +409,8 @@ public class DOPCalculator {
 		tleList.add(qzss4TLEString);
 
 		TLEString qzss5TLEString = new TLEString();
-		qzss5TLEString.setLine1("1 28937U 06004A   17150.86877781 -.00000262  00000-0  00000-0 0  9996");
-		qzss5TLEString.setLine2("2 28937   0.0213  58.6063 0003697 329.9697 269.7870  1.00271007 41344");
+		qzss5TLEString.setLine1("1 42738U 17028A   17175.62920076 -.00000254 +00000-0 +00000-0 0  9997");
+		qzss5TLEString.setLine2("2 42738 044.7389 229.4881 0753048 269.8262 136.5640 01.00256368000261");
 		tleList.add(qzss5TLEString);
 
 		TLEString qzss6TLEString = new TLEString();
@@ -338,8 +418,14 @@ public class DOPCalculator {
 		qzss6TLEString.setLine2("2 28937   0.0213 118.6063 0003697 329.9697 269.7870  1.00271007 41341");
 		tleList.add(qzss6TLEString);
 
+		TLEString qzss7TLEString = new TLEString();
+		qzss7TLEString.setLine1("1 28937U 06004A   17150.86877781 -.00000262  00000-0  00000-0 0  9996");
+		qzss7TLEString.setLine2("2 28937   0.0213  58.6063 0003697 329.9697 269.7870  1.00271007 41344");
+		tleList.add(qzss7TLEString);
+
 		try {
 			calculator.outputCalcResult(tleList);
+			calculator.outputCalcResult2(tleList);
 		} catch (ObjectDecayed e) {
 			System.err.println("something happens: " + e.getLocalizedMessage());
 			e.printStackTrace();

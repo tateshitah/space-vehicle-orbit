@@ -129,14 +129,19 @@ public class OrbitCalculator {
 		tleList.add(qzss4TLEString);
 
 		TLEString qzss5TLEString = new TLEString();
-		qzss5TLEString.setLine1("1 28937U 06004A   17150.86877781 -.00000262  00000-0  00000-0 0  9996");
-		qzss5TLEString.setLine2("2 28937   0.0213  58.6063 0003697 329.9697 269.7870  1.00271007 41344");
+		qzss5TLEString.setLine1("1 42738U 17028A   17175.62920076 -.00000254 +00000-0 +00000-0 0  9997");
+		qzss5TLEString.setLine2("2 42738 044.7389 229.4881 0753048 269.8262 136.5640 01.00256368000261");
 		tleList.add(qzss5TLEString);
 
 		TLEString qzss6TLEString = new TLEString();
 		qzss6TLEString.setLine1("1 28937U 06004A   17150.86877781 -.00000262  00000-0  00000-0 0  9996");
 		qzss6TLEString.setLine2("2 28937   0.0213 118.6063 0003697 329.9697 269.7870  1.00271007 41341");
 		tleList.add(qzss6TLEString);
+
+		TLEString qzss7TLEString = new TLEString();
+		qzss7TLEString.setLine1("1 28937U 06004A   17150.86877781 -.00000262  00000-0  00000-0 0  9996");
+		qzss7TLEString.setLine2("2 28937   0.0213  58.6063 0003697 329.9697 269.7870  1.00271007 41344");
+		tleList.add(qzss7TLEString);
 
 		try {
 			calculator.outputCalcResult(tleList);

@@ -97,7 +97,7 @@ public class DOPCalculatorTest {
 		try {
 			double hdop = calc.calcHDOP(currentPosllh, satellitesPosList, 15.0);
 			System.out.println("hdop = " + hdop);
-			assertEquals(5.4686, hdop, 0.1);
+			assertEquals(5.1283, hdop, 0.1);
 		} catch (CannotInverseException e) {
 			fail("something happens. " + e.getLocalizedMessage());
 			e.printStackTrace();
