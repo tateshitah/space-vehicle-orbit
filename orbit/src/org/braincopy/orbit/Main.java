@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014 Hiroaki Tateshita
+Copyright (c) 2014-2021 Hiroaki Tateshita
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 package org.braincopy.orbit;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -51,7 +52,7 @@ public class Main {
 		double startDay, stopDay;
 
 		startYear = 2014;
-		startDay = 101.5;// March 2nd 12 am
+		startDay = 101.5;// April 11th 12 am
 		stopYear = 2014;
 		stopDay = 111.5;
 		step = 5;// 60 [minutes] = 1 hour
@@ -66,7 +67,8 @@ public class Main {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
 
 		try {
-			FileWriter writer = new FileWriter("target/output.txt");
+			File outputFile = new File("orbit"+File.separator+"target"+File.separator+"output.txt");
+			FileWriter writer = new FileWriter(outputFile);
 			results = sgp4.runSgp4(line1, line2, startYear, startDay, stopYear,
 					stopDay, step);// step's unit should be minute.
 			PositionECI posEci = null;
@@ -93,6 +95,7 @@ public class Main {
 						+ posLlh.getLon() * 180 / Math.PI + "\t"
 						+ posLlh.getHeight() + "\n");
 			}
+			writer.close();
 		} catch (ObjectDecayed e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

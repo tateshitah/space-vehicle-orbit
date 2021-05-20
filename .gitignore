@@ -4,3 +4,5 @@
 *.war
 *.ear
 *.kml
+.vscode/
+orbit/.settings/
