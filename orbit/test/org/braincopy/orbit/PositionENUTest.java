@@ -1,6 +1,6 @@
 package org.braincopy.orbit;
 /*
-Copyright (c) 2014 Hiroaki Tateshita
+Copyright (c) 2014-2021 Hiroaki Tateshita
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -90,6 +90,10 @@ public class PositionENUTest {
 		assertEquals(3 * Math.PI / 4, position.getAzimuth(), 0.001);
 		position = new PositionENU(1, -1, 1);
 		assertEquals(-Math.PI / 4, position.getAzimuth(), 0.001);
+		position = new PositionENU(1,0,0);//just east
+		assertEquals(0, position.getAzimuth(),0.001);
+		position = new PositionENU(-1,0,0);//just east
+		assertEquals(Math.PI, position.getAzimuth(),0.001);
 
 	}
 }

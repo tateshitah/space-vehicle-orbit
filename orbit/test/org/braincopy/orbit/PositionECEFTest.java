@@ -1,6 +1,6 @@
 package org.braincopy.orbit;
 /*
-Copyright (c) 2014 Hiroaki Tateshita
+Copyright (c) 2014-2021 Hiroaki Tateshita
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,15 +22,13 @@ THE SOFTWARE.
  */
 
 
-import org.braincopy.orbit.PositionECEF;
-import org.braincopy.orbit.PositionLLH;
+import static org.junit.Assert.fail;
 
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *

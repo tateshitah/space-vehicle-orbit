@@ -1,6 +1,6 @@
 /**
  
-Copyright (c) 2014-2017 Hiroaki Tateshita
+Copyright (c) 2014-2021 Hiroaki Tateshita
 
 Permission is hereby granted, free of charge, to any person obtaining a copy 
 of this software and associated documentation files (the "Software"), to deal
@@ -84,7 +84,10 @@ public class PositionENU {
 	}
 
 	/**
-	 * 
+	 * when east, returns 0[rad]
+	 * when north, returns PI/2[rad]
+	 * when west, returns PI[rad]
+	 * when south, rerurns -PI/2[rad]
 	 * @return azimuth [rad]
 	 */
 	public double getAzimuth() {
